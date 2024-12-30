@@ -1,0 +1,7 @@
+{
+  "name": "evalU2prghbrd",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
