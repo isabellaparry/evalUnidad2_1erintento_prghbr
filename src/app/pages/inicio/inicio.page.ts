@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { CitasService } from '../../services/citas.service';
+import { DatabaseService } from '../../services/database.service';
+import { Cita } from '../../models/cita';
 
 @Component({
   selector: 'app-inicio',
@@ -13,15 +15,23 @@ import { CitasService } from '../../services/citas.service';
 })
 
 export class InicioPage implements OnInit {
+  citas: Cita[] = [];
+  loaded: boolean = false;
 
   citaAleatoria: { cita: string; autor: string } | undefined;
 
-  constructor(private citasService: CitasService) {
+  constructor( private dbService: DatabaseService ) {
   }
 
   ngOnInit() {
-    this.citaAleatoria = this.citasService.obtenerCitaAleatoria();
-
+    this.dbService.citas$.subscribe((citas) => {
+      this.citas = Array.from(citas.values());
+  
+      if (this.citas.length > 0) {
+        const indiceAleatorio = Math.floor(Math.random() * this.citas.length);
+        this.citaAleatoria = this.citas[indiceAleatorio];
+      }
+    });
   }
 
 }

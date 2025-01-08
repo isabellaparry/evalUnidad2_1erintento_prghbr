@@ -1,78 +1,90 @@
 import { Injectable } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
-import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection } from '@capacitor-community/sqlite';
+import { CitasRepository } from './citas-repository';
+import { CitasSqliteData } from './citas-sqlite-data';
+import { Cita } from '../models/cita';
+import { decodeTime } from 'ulidx'
+import { BehaviorSubject } from 'rxjs'
 
-@Injectable({
+@Injectable( {
   providedIn: 'root'
-})
-
+} )
 export class DatabaseService {
-  private sqlite: SQLiteConnection = new SQLiteConnection(CapacitorSQLite);
-  private db!: SQLiteDBConnection;
 
-  constructor() { }
+  repository: CitasRepository = new CitasSqliteData()
 
-  async iniciarPlugin(): Promise<void> {
-    try {
-      // Verifica si estás en la plataforma web
-      if (Capacitor.getPlatform() === 'web') {
-        const jeepSqliteEl = document.querySelector('jeep-sqlite');
-        if (!jeepSqliteEl) {
-          throw new Error('El componente jeep-sqlite no está presente en el DOM.');
-        }
-
-        // Inicializa el almacenamiento para la web
-        await CapacitorSQLite.initWebStore();
-      }
-
-      if (!this.db) {
-        this.db = await this.sqlite.createConnection(
-          'citassql',
-          false,
-          'no-encryption',
-          1,
-          false
-        );
-        await this.db.open();
-
-        const schema = `
-          CREATE TABLE IF NOT EXISTS citas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cita TEXT NOT NULL,
-            autor TEXT NOT NULL
-          );
-        `;
-        await this.db.execute(schema);
-        console.log('Base de datos inicializada correctamente.');
-      }
-    } catch (error) {
-      console.error('Error al inicializar la base de datos:', error);
-      throw error;
-    }
+  constructor() {
+    this.cargarCitasDesdeBD().then(() => {
+      console.log('Citas cargadas al iniciar el servicio');
+    });
   }
 
-  // CRUD - Create, Read, Update, Delete
-
-  async agregarCita(cita: string, autor: string) {
-    const query = `INSERT INTO citas (cita, autor) VALUES (?, ?)`;
-    await this.db.run(query, [cita, autor]);
+  async init(): Promise<void> {
+    await this.repository.init()
+    // await this.seedCitas()
   }
 
-  async obtenerCitas() {
-    const query = `SELECT * FROM citas`;
-    const result = await this.db.query(query);
-    return result.values || [];
+  private _quotes: Map<string, Cita>                        = new Map()
+  private quotesSubject: BehaviorSubject<Map<string, Cita>> = new BehaviorSubject(
+    this._quotes )
+  citas$                                                    = this.quotesSubject.asObservable()
+
+  async seedCitas(): Promise<void> {
+    const id1 = '01J9J7XRM22TYP9CT2WJC0XB8P'
+    const id2 = '01J9J7XRMDZ6J9C0FEBN41G5N6'
+    await this.repository.deleteCita( id1 )
+    await this.repository.deleteCita( id2 )
+    await this.repository.addCita( {
+      id       : id1,
+      cita     : 'Success usually comes to those who are too busy to be looking for it.',
+      autor   : 'Henry David Thoreau'
+    } )
+    await this.repository.addCita( {
+      id       : id2,
+      cita     : 'We are all like fireworks: we climb, we shine and always go our separate ways and become further apart. But even when that time comes, let’s not disappear like a firework and continue to shine.. forever.',
+      autor   : 'Hitsugaya Toshiro'
+    } )
+    await this.getCitas()
   }
 
-  async obtenerCitaPorId(id: number) {
-    const query = `SELECT * FROM citas WHERE id = ?`;
-    const result = await this.db.query(query, [id]);
-    return result.values;
+  private async getCitas(): Promise<void> {
+    const quotes        = await this.repository.getCitas()
   }
 
-  async eliminarCita(id: number) {
-    const query = `DELETE FROM citas WHERE id = ?`;
-    await this.db.run(query, [id]);
+  async addCita( quote: Cita ): Promise<void> {
+    await this.repository.addCita( quote )
+    this._quotes.set( quote.id, quote )
+    this.quotesSubject.next( this._quotes )
   }
+
+  async deleteCita( id: string ): Promise<void> {
+    await this.repository.deleteCita( id )
+    this._quotes.delete( id )
+    this.quotesSubject.next( this._quotes )
+  }
+
+  async getCita( id: string ): Promise<Cita | undefined> {
+    // return this.repository.getCita( id )
+    return this._quotes.get( id )
+  }
+
+  async updateCita( quote: Cita ): Promise<void> {
+    await this.repository.updateCita( quote )
+    this._quotes.set( quote.id, quote )
+    this.quotesSubject.next( this._quotes )
+  }
+
+  async getAllCitas(): Promise<Cita[]> {
+    const citas = await this.repository.getCitas(); // Obtener todas las citas desde SQLite
+    return citas;
+  }
+
+  async cargarCitasDesdeBD(): Promise<void> {
+    const citasGuardadas = await this.repository.getCitas(); // Método para obtener citas desde SQLite
+    citasGuardadas.forEach((cita) => {
+      this._quotes.set(cita.id, cita);
+    });
+    this.quotesSubject.next(this._quotes); // Actualiza el flujo
+  }
+  
 
 }

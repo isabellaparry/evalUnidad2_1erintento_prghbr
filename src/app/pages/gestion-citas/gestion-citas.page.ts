@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { CitasService } from '../../services/citas.service';
 import { DatabaseService } from '../../services/database.service';
+import { Cita } from '../../models/cita';
 
 @Component({
   selector: 'app-gestion-citas',
@@ -14,24 +14,26 @@ import { DatabaseService } from '../../services/database.service';
 })
 
 export class GestionCitasPage implements OnInit {
-  citas: { id: number; cita: string; autor: string }[] = [];
+  citas: Cita[] = [];
+  loaded: boolean = false;
   //nuevaCita = '';
   //nuevoAutor = '';
 
   constructor(private dbService: DatabaseService) {}
 
-  async ngOnInit() {
-    try {
-      // Inicializa la base de datos
-      await this.dbService.iniciarPlugin();
-      console.log('Base de datos inicializada correctamente.');
-  
-      // Carga las citas iniciales
-      this.citas = await this.dbService.obtenerCitas();
-      console.log('Citas cargadas:', this.citas);
-    } catch (error) {
-      console.error('Error al inicializar la base de datos GESTION CITAS PAGE:', error);
-    }
+  ngOnInit() {
+    // Suscríbete al flujo de citas
+    this.dbService.citas$.subscribe((citas) => {
+      this.loaded = false; // Indica que la página está cargando
+      this.citas = Array.from(citas.values());
+      this.loaded = true; // Indica que los datos se han cargado
+    });
+  }
+
+  ionViewWillEnter() {
+    this.dbService.citas$.subscribe((citas) => {
+      this.citas = Array.from(citas.values());
+    });
   }
   
 
@@ -39,6 +41,8 @@ export class GestionCitasPage implements OnInit {
     nuevaCita: new FormControl('',[Validators.required, Validators.minLength(5)]),
     nuevoAutor: new FormControl('',[Validators.required, Validators.minLength(2)])
   });
+
+  
 
 
   async agregarCita() {
@@ -51,22 +55,31 @@ export class GestionCitasPage implements OnInit {
     const nuevaCita = this.nuevaCitaForm.get('nuevaCita')?.value || '';
     const nuevoAutor = this.nuevaCitaForm.get('nuevoAutor')?.value || '';
 
-    await this.dbService.agregarCita(nuevaCita, nuevoAutor);
+    // Genera un ID único
+    const idUnico = Date.now().toString();
+
+    const citaAInsertar = { id: idUnico, cita: nuevaCita, autor: nuevoAutor };
+
+    await this.dbService.addCita(citaAInsertar);
     console.log('NUEVA CITA', { cita: nuevaCita, autor: nuevoAutor });
-    this.citas = await this.dbService.obtenerCitas();
 
     // Limpiar campos
     this.nuevaCitaForm.reset();
 
     console.log('CITAS ACTUALES', this.citas);
     } catch (error) {
-      console.error('Error al agregar cita:', error);
+    console.error('Error al agregar cita:', error);
     }
   }
 
-  async eliminarCita(indice: number) {
-    await this.dbService.eliminarCita(indice);
-    this.citas = await this.dbService.obtenerCitas();
+  async eliminarCita(indice: string) {
+    await this.dbService.deleteCita(indice);
+
+    this.dbService.citas$.subscribe( async (citas) => {
+      this.loaded = false
+      this.citas = Array.from(citas.values())
+      this.loaded = true
+      })
   }
 
 }
