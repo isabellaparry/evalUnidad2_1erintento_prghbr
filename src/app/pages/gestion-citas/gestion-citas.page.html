@@ -1,0 +1,49 @@
+<ion-toolbar>
+  <ion-header>
+      <ion-title>Gestión de citas</ion-title>
+  </ion-header>
+</ion-toolbar>
+
+<ion-content>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Crea una nueva cita</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div [formGroup]="nuevaCitaForm">
+        <ion-item>
+          <ion-input formControlName="nuevaCita" placeholder="Cita"></ion-input>
+          <ion-text [hidden]="nuevaCitaForm.get('nuevaCita')?.valid || nuevaCitaForm.get('nuevaCita')?.pristine" color="danger">La cita debe tener más de 5 caracteres.</ion-text>
+        </ion-item>
+  
+        <ion-item>
+          <ion-input formControlName="nuevoAutor" placeholder="Autor"></ion-input>
+          <ion-text [hidden]="nuevaCitaForm.get('nuevoAutor')?.valid || nuevaCitaForm.get('nuevoAutor')?.pristine" color="danger">El autor debe tener más de 2 caracteres.</ion-text>
+        </ion-item>
+  
+        <ion-button
+          [disabled]="nuevaCitaForm.invalid"
+          (click)="agregarCita()"
+          style="margin-top: 10px;">
+          Agregar
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+  
+  <ion-list>
+    <ion-item *ngFor="let cita of citas">
+      <ion-label>
+        <p>{{ cita.cita }}</p>
+        <small>- {{ cita.autor }}</small>
+      </ion-label>
+      <ion-button color="danger" (click)="eliminarCita(cita.id)">Eliminar</ion-button>
+    </ion-item>
+  </ion-list>
+
+  <div class="links center-content">
+    <a class="links-button" href="/inicio">Inicio</a>
+    <a class="links-button" href="/configuracion">Configuración</a>
+  </div>
+
+</ion-content>

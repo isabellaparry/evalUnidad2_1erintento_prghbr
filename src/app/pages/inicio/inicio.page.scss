@@ -1,0 +1,28 @@
+.center-content {
+    display: flex;
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center;
+    height: 50%;
+    text-align: center;
+  }
+  
+.cita {
+    background-color: #c46599;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+}
+.cita p {
+    font-size: 30px;
+}
+  
+.links-button {
+    margin-bottom: 10px;
+    background-color: #c46599;
+    padding: 10px;
+    text-decoration: none;
+    color: #ffffff;
+    border-radius: 5px;
+}
+  
